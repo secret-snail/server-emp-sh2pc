@@ -7,10 +7,27 @@ template<typename IO>
 class SemiHonestEva: public SemiHonestParty<IO> { public:
 	HalfGateEva<IO> * gc;
 	PRG prg;
-	SemiHonestEva(IO *io, HalfGateEva<IO> * gc): SemiHonestParty<IO>(io, BOB) {
+
+//void p128_hex_u32(__m128i in) {
+//    alignas(16) uint32_t v[4];
+//    _mm_store_si128((__m128i*)v, in);
+//    printf("v4_u32: %x %x %x %x\n", v[0], v[1], v[2], v[3]);
+//}
+
+	SemiHonestEva(IO *io, IO *trustedThirdPartyIO, HalfGateEva<IO> * gc): SemiHonestParty<IO>(io, trustedThirdPartyIO, BOB) {
 		this->gc = gc;	
 		this->ot->setup_recv();
-		block seed; this->io->recv_block(&seed, 1);
+		block seed;
+        if (this->ttpio) {
+            this->io->flush();
+            // bob learns seed from ttp
+            //std::cout << "bob getting seed..." << std::flush;
+		    this->ttpio->recv_block(&seed, 1);
+            //p128_hex_u32(seed);
+            //std::cout << " done\n";
+        } else {
+            this->io->recv_block(&seed, 1);
+        }
 		this->shared_prg.reseed(&seed);
 		refill();
 	}
@@ -23,6 +40,9 @@ class SemiHonestEva: public SemiHonestParty<IO> { public:
 
 	void feed(block * label, int party, const bool* b, int length) {
 		if(party == ALICE) {
+			this->shared_prg.random_block(label, length);
+        } else if(party == TTP) {
+            //std::cout << "bob generating label\n";
 			this->shared_prg.random_block(label, length);
 		} else {
 			if (length > this->batch_size) {
@@ -66,6 +86,10 @@ class SemiHonestEva: public SemiHonestParty<IO> { public:
 			} else if (party == ALICE) {
 				this->io->send_data(&lsb, 1);
 				b[i] = false;
+			} else if (party == TTP) {
+                // send ttp lsb
+                this->ttpio->send_bool(&lsb, 1);
+                this->ttpio->flush();
 			}
 		}
 		if(party == PUBLIC)

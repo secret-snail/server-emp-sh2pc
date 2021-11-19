@@ -7,16 +7,33 @@ namespace emp {
 template<typename IO>
 class SemiHonestGen: public SemiHonestParty<IO> { public:
 	HalfGateGen<IO> * gc;
-	SemiHonestGen(IO* io, HalfGateGen<IO>* gc): SemiHonestParty<IO>(io, ALICE) {
+
+//void p128_hex_u32(__m128i in) {
+//    alignas(16) uint32_t v[4];
+//    _mm_store_si128((__m128i*)v, in);
+//    printf("v4_u32: %x %x %x %x\n", v[0], v[1], v[2], v[3]);
+//}
+
+	SemiHonestGen(IO* io, IO* trustedThirdPartyIO, HalfGateGen<IO>* gc): SemiHonestParty<IO>(io, trustedThirdPartyIO, ALICE) {
 		this->gc = gc;
 		bool delta_bool[128];
 		block_to_bool(delta_bool, gc->delta);
 		this->ot->setup_send(delta_bool);
 		block seed;
-		PRG prg;
-		prg.random_block(&seed, 1);
-		this->io->send_block(&seed, 1);
-		this->shared_prg.reseed(&seed);
+        if (this->ttpio) {
+            // alice cannot learn seed
+            // send delta to ttp
+            //std::cout << "alice sending delta..." << std::flush;
+            this->ttpio->send_block(&gc->delta, 1);
+            this->ttpio->flush();
+            //p128_hex_u32(gc->delta);
+            //std::cout << " done\n";
+        } else {
+		    PRG prg;
+		    prg.random_block(&seed, 1);
+		    this->io->send_block(&seed, 1);
+		    this->shared_prg.reseed(&seed);
+        }
 		refill();
 	}
 
@@ -27,11 +44,18 @@ class SemiHonestGen: public SemiHonestParty<IO> { public:
 
 	void feed(block * label, int party, const bool* b, int length) {
 		if(party == ALICE) {
+            assert(ttpio == nullptr);
 			this->shared_prg.random_block(label, length);
 			for (int i = 0; i < length; ++i) {
 				if(b[i])
 					label[i] = label[i] ^ gc->delta;
 			}
+        } else if(party == TTP) {
+            // get label from ttp
+            //std::cout << "alice getting label..." << std::flush;
+		    this->ttpio->recv_block(label, length);
+            //p128_hex_u32(label[0]);
+
 		} else {
 			if (length > this->batch_size) {
 				this->ot->send_cot(label, length);
@@ -72,6 +96,10 @@ class SemiHonestGen: public SemiHonestParty<IO> { public:
 				bool tmp;
 				this->io->recv_data(&tmp, 1);
 				b[i] = (tmp != lsb);
+			} else if(party == TTP) {
+                // send ttp lsb
+                this->ttpio->send_bool(&lsb, 1);
+                this->ttpio->flush();
 			}
 		}
 		if(party == PUBLIC)

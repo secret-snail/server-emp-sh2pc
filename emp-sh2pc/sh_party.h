@@ -8,6 +8,7 @@ namespace emp {
 template<typename IO>
 class SemiHonestParty: public ProtocolExecution { public:
 	IO* io = nullptr;
+	IO* ttpio = nullptr;
 	IKNP<IO> * ot = nullptr;
 	PRG shared_prg;
 
@@ -16,8 +17,9 @@ class SemiHonestParty: public ProtocolExecution { public:
 	int top = 0;
 	int batch_size = 1024*16;
 
-	SemiHonestParty(IO * io, int party) : ProtocolExecution(party) {
+	SemiHonestParty(IO * io, IO* ttpio, int party) : ProtocolExecution(party) {
 		this->io = io;
+        this->ttpio = ttpio;
 		ot = new IKNP<IO>(io);
 		buf = new block[batch_size];
 		buff = new bool[batch_size];
