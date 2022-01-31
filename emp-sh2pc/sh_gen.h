@@ -44,7 +44,7 @@ class SemiHonestGen: public SemiHonestParty<IO> { public:
 
 	void feed(block * label, int party, const bool* b, int length) {
 		if(party == ALICE) {
-            assert(ttpio == nullptr);
+            assert(this->ttpio == nullptr);
 			this->shared_prg.random_block(label, length);
 			for (int i = 0; i < length; ++i) {
 				if(b[i])
