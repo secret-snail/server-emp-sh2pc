@@ -87,13 +87,17 @@ class SemiHonestEva: public SemiHonestParty<IO> { public:
 				this->io->send_data(&lsb, 1);
 				b[i] = false;
 			} else if (party == TTP) {
-                // send ttp lsb
                 this->ttpio->send_bool(&lsb, 1);
-                this->ttpio->flush();
 			}
 		}
-		if(party == PUBLIC)
+	    if (party == ALICE) {
+			this->io->flush();
+        } else if (party == TTP) {
+			this->ttpio->flush();
+        } else if(party == PUBLIC) {
 			this->io->send_data(b, length);
+			this->io->flush();
+        }
 	}
 
 };

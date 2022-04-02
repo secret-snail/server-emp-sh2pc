@@ -82,6 +82,7 @@ class SemiHonestGen: public SemiHonestParty<IO> { public:
 	}
 
 	void reveal(bool* b, int party, const block * label, int length) {
+        //std::cout << "gen start" << std::flush;
 		if (party == XOR) {
 			for (int i = 0; i < length; ++i)
 				b[i] = getLSB(label[i]);
@@ -97,13 +98,17 @@ class SemiHonestGen: public SemiHonestParty<IO> { public:
 				this->io->recv_data(&tmp, 1);
 				b[i] = (tmp != lsb);
 			} else if(party == TTP) {
-                // send ttp lsb
                 this->ttpio->send_bool(&lsb, 1);
-                this->ttpio->flush();
 			}
 		}
-		if(party == PUBLIC)
+		if (party == BOB or party == PUBLIC) {
+			this->io->flush();
+        } else if(party == TTP) {
+            this->ttpio->flush();
+        }
+        if(party == PUBLIC) {
 			this->io->recv_data(b, length);
+        }
 	}
 };
 }
