@@ -98,7 +98,7 @@ class SemiHonestGen: public SemiHonestParty<IO> { public:
 				this->io->recv_data(&tmp, 1);
 				b[i] = (tmp != lsb);
 			} else if(party == TTP) {
-                this->ttpio->send_bool(&lsb, 1);
+				this->ttpio->send_data(&lsb, 1);
 			}
 		}
 		if (party == BOB or party == PUBLIC) {

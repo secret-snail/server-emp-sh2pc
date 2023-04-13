@@ -87,7 +87,7 @@ class SemiHonestEva: public SemiHonestParty<IO> { public:
 				this->io->send_data(&lsb, 1);
 				b[i] = false;
 			} else if (party == TTP) {
-                this->ttpio->send_bool(&lsb, 1);
+        this->ttpio->send_data(&lsb, 1);
 			}
 		}
 	    if (party == ALICE) {
